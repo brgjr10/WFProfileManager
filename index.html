@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warframe Profile Manager</title>
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #151520;
+            --bg-card: #1a1a2a;
+            --text-primary: #e0e0ff;
+            --text-secondary: #a0a0c0;
+            --accent: #4fc3f7;
+            --accent-2: #90caf9;
+            --success: #66bb6a;
+            --warning: #ffb74d;
+            --danger: #ef5350;
+            --border: #2a2a40;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, #050508 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { text-align: center; margin-bottom: 10px; color: var(--accent); font-size: 2.2rem; }
+        .subtitle { text-align: center; color: var(--text-secondary); margin-bottom: 30px; font-size: 1rem; }
+
+        .section { background: var(--bg-secondary); border-radius: 12px; padding: 24px; margin-bottom: 20px; border: 1px solid var(--border); }
+        .section-title { color: var(--accent-2); font-size: 1.3rem; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+
+        .upload-area { text-align: center; padding: 40px 20px; border: 2px dashed var(--border); border-radius: 12px; cursor: pointer; transition: all 0.3s; }
+        .upload-area:hover { border-color: var(--accent); background: var(--bg-card); }
+        .upload-area input { display: none; }
+        .upload-text { color: var(--text-secondary); margin-bottom: 10px; }
+        .upload-icon { font-size: 3rem; color: var(--accent); margin-bottom: 10px; }
+
+        .player-hero { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; margin-bottom: 20px; }
+        .player-avatar { width: 100px; height: 100px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 3rem; color: var(--bg-primary); font-weight: bold; }
+        .player-info { flex: 1; }
+        .player-name { font-size: 2rem; color: var(--accent); margin-bottom: 5px; }
+        .player-meta { color: var(--text-secondary); font-size: 0.95rem; }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; }
+        .stat-card { background: var(--bg-card); border-radius: 8px; padding: 16px; text-align: center; border: 1px solid var(--border); }
+        .stat-value { font-size: 1.8rem; color: var(--accent); font-weight: bold; }
+        .stat-label { color: var(--text-secondary); font-size: 0.85rem; margin-top: 4px; }
+
+        .items-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+        .item-category { background: var(--bg-card); border-radius: 8px; padding: 16px; border: 1px solid var(--border); }
+        .item-category h4 { color: var(--warning); margin-bottom: 12px; font-size: 1rem; }
+        .item-count { font-size: 2rem; color: var(--accent-2); text-align: center; margin-bottom: 8px; }
+        .progress-bar { background: var(--border); border-radius: 4px; height: 8px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--accent); transition: width 0.5s; }
+
+        .syndicates-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
+        .syndicate-item { background: var(--bg-card); border-radius: 6px; padding: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border); }
+        .syndicate-name { font-size: 0.9rem; }
+        .syndicate-standing { font-weight: bold; min-width: 80px; text-align: right; }
+        .standing-high { color: var(--success); }
+        .standing-med { color: var(--warning); }
+        .standing-low { color: var(--danger); }
+
+        .recommendations { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 768px) { .recommendations { grid-template-columns: 1fr; } }
+
+        .rec-card { background: var(--bg-card); border-radius: 8px; padding: 16px; border: 1px solid var(--border); }
+        .rec-card h4 { margin-bottom: 12px; }
+        .rec-daily h4 { color: var(--accent); }
+        .rec-weekly h4 { color: var(--success); }
+        .rec-item { padding: 10px; margin: 8px 0; background: var(--bg-secondary); border-radius: 6px; border-left: 3px solid var(--accent); }
+        .rec-item.priority-high { border-left-color: var(--danger); }
+        .rec-item.priority-med { border-left-color: var(--warning); }
+        .rec-item.priority-low { border-left-color: var(--success); }
+        .rec-item-title { font-weight: bold; margin-bottom: 4px; }
+        .rec-item-desc { font-size: 0.85rem; color: var(--text-secondary); }
+
+        .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        .info-row:last-child { border-bottom: none; }
+        .info-label { color: var(--text-secondary); }
+        .info-value { color: var(--accent-2); }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌌 Warframe Profile Manager</h1>
+        <p class="subtitle">Analyze your profile.json and discover what to do today</p>
+
+        <div class="section" id="uploadSection">
+            <h3 class="section-title">🌐 Fetch from Warframe API</h3>
+            <div style="margin-bottom: 20px;">
+                <input type="text" id="playerIdInput" placeholder="Player ID (from warframe.com/api/user-data)" style="width: 100%; padding: 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 1rem;">
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <select id="platformSelect" style="padding: 8px 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary);">
+                        <option value="pc">PC</option>
+                        <option value="psn">PlayStation</option>
+                        <option value="xbox">Xbox</option>
+                        <option value="switch">Switch</option>
+                    </select>
+                    <button onclick="fetchFromAPI()" style="padding: 8px 20px; background: var(--accent); border: none; border-radius: 6px; color: var(--bg-primary); font-weight: bold; cursor: pointer;">Fetch Profile</button>
+                </div>
+                <div style="font-size: 0.85rem; color: var(--warning); margin-top: 8px;">Note: Requires running server (npm start). Or use file upload.</div>
+            </div>
+
+            <div style="text-align: center; color: var(--text-secondary); margin: 15px 0;">
+                <span style="border-top: 1px solid var(--border); display: inline-block; padding-top: 15px; width: 100%;">Or use profile.json file</span>
+            </div>
+
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                <div class="upload-icon">📂</div>
+                <div class="upload-text">Drop your profile.json here or click to browse</div>
+                <div style="font-size: 0.8rem; color: var(--text-secondary);">fallback if API fetch is blocked by CORS</div>
+                <input type="file" id="fileInput" accept=".json" onchange="handleFile(event)">
+            </div>
+        </div>
+
+        <div id="dashboard" class="hidden">
+            <div class="section">
+                <div class="player-hero">
+                    <div class="player-avatar" id="playerAvatar">W</div>
+                    <div class="player-info">
+                        <div class="player-name" id="playerName">Loading...</div>
+                        <div class="player-meta">
+                            <span id="playerLevel">Level: --</span> |
+                            <span id="playerMR">MR: --</span> |
+                            <span id="playerGuild">Guild: --</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3 class="section-title">📊 Player Stats</h3>
+                <div class="stats-grid" id="statsGrid"></div>
+            </div>
+
+            <div class="section">
+                <h3 class="section-title">📦 Item Ownership</h3>
+                <div class="items-grid" id="itemsGrid"></div>
+            </div>
+
+            <div class="section">
+                <h3 class="section-title">🔱 Syndicate Standings</h3>
+                <div class="syndicates-list" id="syndicatesList"></div>
+            </div>
+
+            <div class="recommendations">
+                <div class="section rec-daily" id="dailyRec">
+                    <h3 class="section-title">📅 What to Do Today</h3>
+                </div>
+                <div class="section rec-weekly" id="weeklyRec">
+                    <h3 class="section-title">📆 Weekly Outlook</h3>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3 class="section-title">ℹ️ Raw Profile Info</h3>
+                <div id="rawInfo"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let profileData = null;
+        let fileSource = 'profile.json';
+
+        function handleFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            fileSource = 'profile.json';
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    profileData = JSON.parse(e.target.result);
+                    analyzeProfile();
+                } catch (err) {
+                    showError('Invalid JSON file. Please upload a valid profile.json.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function showError(msg) {
+            const errorDiv = document.createElement('div');
+            errorDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #ef5350; color: white; padding: 16px; border-radius: 8px; z-index: 1000;';
+            errorDiv.textContent = msg;
+            document.body.appendChild(errorDiv);
+            setTimeout(() => errorDiv.remove(), 4000);
+        }
+
+        function getItemName(itemType) {
+            return itemType.split('/').pop().replace(/([A-Z])/g, ' $1').trim();
+        }
+
+        function glyphToAvatarUrl(glyph) {
+            if (!glyph) return null;
+            if (glyph.includes('/Lotus/Types/StoreItems/AvatarImages/')) {
+                const match = glyph.match(/\/Lotus\/Types\/StoreItems\/AvatarImages\/(.+)$/);
+                if (match) {
+                    const iconName = match[1].replace(/^AvatarImage/, '');
+                    return `https://media.overframe.gg/v2/256x/Lotus/Interface/Icons/Player/${iconName}.png.webp`;
+                }
+            }
+            if (!glyph.includes('/Lotus/Types/StoreItems/AvatarImages/')) {
+                if (glyph.includes('/Lotus/Interface/Icons/Player/') && glyph.endsWith('.png')) {
+                    return `https://media.overframe.gg/v2/256x${glyph.replace('.png', '.webp')}`;
+                }
+            }
+            return null;
+        }
+
+        function getTypeName(category) {
+            const map = {
+                'Suits': 'Warframes',
+                'Pistols': 'Secondary Weapons',
+                'LongGuns': 'Primary Weapons',
+                'Melee': 'Melee Weapons',
+                'WeaponSkins': 'Weapon Skins'
+            };
+            return map[category] || category;
+        }
+
+        function getSyndicateName(tag) {
+            const names = {
+                'RadioLegionIntermission13Syndicate': 'Arbiters of Alterity',
+                'VentKidsSyndicate': 'Ventkids',
+                'SolarisSyndicate': 'Solaris United',
+                'CetusSyndicate': 'Ostrons',
+                'RedVeilSyndicate': 'Red Veil',
+                'SteelMeridianSyndicate': 'Steel Meridian',
+                'NewLokaSyndicate': 'New Loka',
+                'ThePerrinSyndicate': 'The Perrin Sequence',
+                'SudaSyndicate': 'Cephalon Suda',
+                'NightwaveSyndicate': 'Nightwave',
+                'EntratiSyndicate': 'Entrati',
+                'KahlSyndicate': 'Kahl',
+                'NecraliskSyndicate': 'Necralisk',
+                'ConclaveSyndicate': 'Conclave',
+                'SyndicateCephalon': 'Cephalon Simaris',
+                'TenshubSyndicate': 'Tenshub'
+            };
+            return names[tag] || tag.replace(/([A-Z])/g, ' $1').trim();
+        }
+
+        function analyzeProfile() {
+            if (!profileData || !profileData.Results || !profileData.Results[0]) {
+                showError('Invalid profile data. Make sure this is a valid profile.json.');
+                return;
+            }
+
+            try {
+                const results = profileData.Results[0];
+                const stats = profileData.Stats;
+                const inventory = results.LoadOutInventory || {};
+
+                // Player Info
+                const cleanName = (results.DisplayName || 'Unknown').replace(/[^\x20-\x7E]/g, '').trim();
+                document.getElementById('playerName').textContent = cleanName;
+                document.getElementById('playerAvatar').textContent = (cleanName || 'W')[0].toUpperCase();
+                document.getElementById('playerLevel').textContent = `Level: ${stats.PlayerLevel || results.PlayerLevel}`;
+                document.getElementById('playerMR').textContent = `MR: ${stats.Rank || 0}`;
+                document.getElementById('playerGuild').textContent = results.GuildName ? `Guild: ${results.GuildName}` : 'No Guild';
+
+                const glyph = results.glyph || results.LoadOutPreset?.glyph || results.LoadOutPreset?.PresetIcon;
+                const avatarDiv = document.getElementById('playerAvatar');
+                if (glyph) {
+                    const url = glyphToAvatarUrl(glyph);
+                    if (url) {
+                        avatarDiv.innerHTML = `<img src="${url}" alt="Avatar" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+                    }
+                }
+
+                // Stats Grid
+                const statsGrid = document.getElementById('statsGrid');
+                statsGrid.innerHTML = `
+                    <div class="stat-card"><div class="stat-value">${Math.round(stats.TimePlayedSec / 3600)}</div><div class="stat-label">Hours Played</div></div>
+                    <div class="stat-card"><div class="stat-value">${stats.MissionsCompleted || 0}</div><div class="stat-label">Missions Completed</div></div>
+                    <div class="stat-card"><div class="stat-value">${stats.MeleeKills || 0}</div><div class="stat-label">Melee Kills</div></div>
+                    <div class="stat-card"><div class="stat-value">${stats.Deaths || 0}</div><div class="stat-label">Deaths</div></div>
+                    <div class="stat-card"><div class="stat-value">${stats.CiphersSolved || 0}</div><div class="stat-label">Ciphers Solved</div></div>
+                    <div class="stat-card"><div class="stat-value">${stats.Scans?.length || 0}</div><div class="stat-label">Scans</div></div>
+                `;
+
+                // Items Grid - use XPInfo for total owned items
+                const itemsGrid = document.getElementById('itemsGrid');
+                const xpInfo = inventory.XPInfo || [];
+
+                const warframeCount = xpInfo.filter(x => x.ItemType?.startsWith('/Lotus/Powersuits/') && !x.ItemType?.includes('/Archwing/')).length;
+                const archwingCount = xpInfo.filter(x => x.ItemType?.includes('/Powersuits/Archwing/')).length;
+                const primaryCount = xpInfo.filter(x => x.ItemType?.startsWith('/Lotus/Weapons/Tenno/') &&
+                    (x.ItemType?.includes('/Rifle/') || x.ItemType?.includes('/Bows/') ||
+                     x.ItemType?.includes('/LongGuns/') || x.ItemType?.includes('/Shotgun/') ||
+                     x.ItemType?.includes('/Akimbo/') || x.ItemType?.includes('/Archwing/Primary/'))).length;
+                const secondaryCount = xpInfo.filter(x => x.ItemType?.startsWith('/Lotus/Weapons/Tenno/') &&
+                    (x.ItemType?.includes('/Pistol/') || x.ItemType?.includes('/Pistols/') ||
+                     x.ItemType?.includes('/ThrowingWeapons/') || x.ItemType?.includes('/Zariman/Pistols/'))).length;
+                const meleeCount = xpInfo.filter(x => x.ItemType?.startsWith('/Lotus/Weapons/Tenno/Melee/')).length;
+
+                const items = {
+                    warframes: { count: warframeCount, xp: inventory.Suits || [] },
+                    primary: { count: primaryCount, xp: inventory.LongGuns || [] },
+                    secondary: { count: secondaryCount, xp: inventory.Pistols || [] },
+                    melee: { count: meleeCount, xp: inventory.Melee || [] }
+                };
+
+                const maxXP = 10000000;
+                itemsGrid.innerHTML = `
+                    <div class="item-category">
+                        <h4>Warframes</h4>
+                        <div class="item-count">${items.warframes.count}</div>
+                        <div class="progress-bar"><div class="progress-fill" style="width: ${Math.min((items.warframes.xp[0]?.XP || 0) / maxXP * 100, 100)}%"></div></div>
+                        <div style="text-align: center; color: var(--text-secondary); font-size: 0.8rem; margin-top: 4px;">XP: ${(items.warframes.xp[0]?.XP || 0).toLocaleString()}</div>
+                    </div>
+                    <div class="item-category">
+                        <h4>Primary Weapons</h4>
+                        <div class="item-count">${items.primary.count}</div>
+                        <div class="progress-bar"><div class="progress-fill" style="width: ${Math.min((items.primary.xp[0]?.XP || 0) / maxXP * 100, 100)}%"></div></div>
+                        <div style="text-align: center; color: var(--text-secondary); font-size: 0.8rem; margin-top: 4px;">XP: ${(items.primary.xp[0]?.XP || 0).toLocaleString()}</div>
+                    </div>
+                    <div class="item-category">
+                        <h4>Secondary Weapons</h4>
+                        <div class="item-count">${items.secondary.count}</div>
+                        <div class="progress-bar"><div class="progress-fill" style="width: ${Math.min((items.secondary.xp[0]?.XP || 0) / maxXP * 100, 100)}%"></div></div>
+                        <div style="text-align: center; color: var(--text-secondary); font-size: 0.8rem; margin-top: 4px;">XP: ${(items.secondary.xp[0]?.XP || 0).toLocaleString()}</div>
+                    </div>
+                    <div class="item-category">
+                        <h4>Melee Weapons</h4>
+                        <div class="item-count">${items.melee.count}</div>
+                        <div class="progress-bar"><div class="progress-fill" style="width: ${Math.min((items.melee.xp[0]?.XP || 0) / maxXP * 100, 100)}%"></div></div>
+                        <div style="text-align: center; color: var(--text-secondary); font-size: 0.8rem; margin-top: 4px;">XP: ${(items.melee.xp[0]?.XP || 0).toLocaleString()}</div>
+                    </div>
+                `;
+
+                // Syndicates
+                const syndicatesList = document.getElementById('syndicatesList');
+                const affiliations = results.Affiliations || [];
+                syndicatesList.innerHTML = affiliations.map(a => {
+                    const standing = a.Standing || 0;
+                    let standingClass = 'standing-low';
+                    if (standing > 100000) standingClass = 'standing-high';
+                    else if (standing > 10000) standingClass = 'standing-med';
+                    return `
+                        <div class="syndicate-item">
+                            <span class="syndicate-name">${getSyndicateName(a.Tag)}</span>
+                            <span class="syndicate-standing ${standingClass}">${standing.toLocaleString()}</span>
+                        </div>
+                    `;
+                }).join('');
+
+                // Recommendations
+                generateRecommendations(results, stats, inventory);
+
+                // Raw Info - clean platform names too
+                const cleanPlatform = (results.PlatformNames?.[0] || 'PC').replace(/[^\x20-\x7E]/g, '').trim();
+                document.getElementById('rawInfo').innerHTML = `
+                    <div class="info-row"><span class="info-label">Account ID</span><span class="info-value">${results.AccountId?.$oid || 'N/A'}</span></div>
+                    <div class="info-row"><span class="info-label">Platform</span><span class="info-value">${cleanPlatform || 'PC'}</span></div>
+                    <div class="info-row"><span class="info-label">Guild</span><span class="info-value">${results.GuildName || 'None'}</span></div>
+                    <div class="info-row"><span class="info-label">XP Cache Expiry</span><span class="info-value">${profileData.XpCacheExpiryDate?.$date?.$numberLong ? new Date(parseInt(profileData.XpCacheExpiryDate.$date.$numberLong)).toLocaleDateString() : 'N/A'}</span></div>
+                    <div class="info-row"><span class="info-label">File Source</span><span class="info-value">${fileSource}</span></div>
+                    <div class="info-row" style="margin-top: 12px; color: var(--text-secondary); font-size: 0.8rem;">Unofficial fan-made tool · Not affiliated with Digital Extremes · Data parsed client-side only</div>
+                `;
+
+                document.getElementById('uploadSection').classList.add('hidden');
+                document.getElementById('dashboard').classList.remove('hidden');
+            } catch (err) {
+                showError('Failed to analyze profile: ' + err.message);
+            }
+        }
+
+        async function fetchFromAPI() {
+            const playerId = document.getElementById('playerIdInput').value.trim();
+            if (!playerId) {
+                showError('Please enter a Player ID');
+                return;
+            }
+            const platform = document.getElementById('platformSelect').value;
+            fileSource = 'Warframe API';
+            try {
+                const response = await fetch(`/api/profile?playerId=${playerId}&platform=${platform}`);
+                if (!response.ok) throw new Error('Failed to fetch profile');
+                const data = await response.json();
+                profileData = data;
+                analyzeProfile();
+            } catch (err) {
+                showError('Failed to fetch. Make sure server is running, or use file upload.');
+            }
+        }
+
+        function generateRecommendations(results, stats, inventory) {
+            const challenges = results.ChallengeProgress || [];
+            const affiliations = results.Affiliations || [];
+            const missions = results.Missions || [];
+
+            const recommendations = [];
+            const weeklyRecs = [];
+
+            // Daily Recommendations based on profile state
+            const totalWeapons = (inventory.LongGuns?.length || 0) + (inventory.Pistols?.length || 0) + (inventory.Melee?.length || 0);
+            const totalWarframes = inventory.Suits?.length || 0;
+            const totalMissions = stats.MissionsCompleted || 0;
+            const mr = stats.Rank || 0;
+
+            // Daily Focus Check
+            const dailyFocus = results.DailyFocus || 0;
+            if (dailyFocus < 50000) {
+                recommendations.push({
+                    title: '✓ Focus Daily Cap',
+                    desc: `Daily focus at ${dailyFocus.toLocaleString()}. Farm for more focus!`,
+                    priority: 'high'
+                });
+            } else {
+                recommendations.push({
+                    title: '✓ Focus Complete',
+                    desc: `Daily focus cap reached (${dailyFocus.toLocaleString()}).`,
+                    priority: 'low'
+                });
+            }
+
+            // Syndicate Standing
+            const lowSyndicates = affiliations.filter(a => (a.Standing || 0) < 20000).slice(0, 3);
+            if (lowSyndicates.length > 0) {
+                recommendations.push({
+                    title: '✓ Syndicate Missions',
+                    desc: `${lowSyndicates.map(s => getSyndicateName(s.Tag)).join(', ')} need standing. Run syndicate missions.`,
+                    priority: 'high'
+                });
+            }
+
+            // Steel Path
+            recommendations.push({
+                title: '✓ Steel Path Incursions',
+                desc: totalMissions > 500 ? 'Complete today\'s Steel Path Incursions.' : 'Unlock Steel Path by completing star chart.',
+                priority: totalMissions > 500 ? 'med' : 'high'
+            });
+
+            // Sortie
+            recommendations.push({
+                title: '✓ Sortie Missions',
+                desc: 'Daily sortie available. +3000 standing per completion.',
+                priority: 'med'
+            });
+
+            // Nightwave
+            recommendations.push({
+                title: '✓ Nightwave Acts',
+                desc: 'Complete daily/weekly Nightwave acts for rewards.',
+                priority: 'med'
+            });
+
+            // Void Fissures
+            recommendations.push({
+                title: '✓ Void Fissure',
+                desc: 'Farm Lith/Meso/Neo/Axi fissures for prime parts.',
+                priority: 'med'
+            });
+
+            // Archon Hunts
+            recommendations.push({
+                title: '✓ Archon Hunt',
+                desc: 'Weekly Archon Hunt available for Archon Shards.',
+                priority: 'low'
+            });
+
+            // Weekly Recommendations
+            weeklyRecs.push({
+                title: '✓ Steel Path Weekly',
+                desc: 'Check Steel Path Honors shop for relic packs.',
+                priority: 'med'
+            });
+
+            weeklyRecs.push({
+                title: '✓ Arbitration',
+                desc: 'Complete Arbitrations for Vitus essence.',
+                priority: 'low'
+            });
+
+            weeklyRecs.push({
+                title: '✓ Nightwave Weekly',
+                desc: 'Complete weekly Nightwave acts for large rewards.',
+                priority: 'med'
+            });
+
+            // Progress-based recs
+            if (mr < 15) {
+                recommendations.push({
+                    title: '✓ Mastery Rank Up',
+                    desc: `MR ${mr} - Farm weapons/warframes for mastery.`,
+                    priority: 'high'
+                });
+            }
+
+            if (inventory.XPInfo?.length < 200) {
+                recommendations.push({
+                    title: '✓ Build More Gear',
+                    desc: `Only ${inventory.XPInfo?.length || 0} items owned. Build more for mastery.`,
+                    priority: 'high'
+                });
+            }
+
+            // Render recommendations
+            const dailyRec = document.getElementById('dailyRec');
+            dailyRec.innerHTML = '<h3 class="section-title">📅 What to Do Today</h3>' +
+                recommendations.map(r => `
+                    <div class="rec-item priority-${r.priority}">
+                        <div class="rec-item-title">${r.title}</div>
+                        <div class="rec-item-desc">${r.desc}</div>
+                    </div>
+                `).join('');
+
+            const weeklyRec = document.getElementById('weeklyRec');
+            weeklyRec.innerHTML = '<h3 class="section-title">📆 Weekly Outlook</h3>' +
+                weeklyRecs.map(r => `
+                    <div class="rec-item priority-${r.priority}">
+                        <div class="rec-item-title">${r.title}</div>
+                        <div class="rec-item-desc">${r.desc}</div>
+                    </div>
+                `).join('');
+        }
+    </script>
+</body>
+</html>
